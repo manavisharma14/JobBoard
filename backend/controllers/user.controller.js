@@ -1,21 +1,23 @@
 // controller is business logic
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import User from '../models/user.model.js';
 
-export const register = async(req, res) => {
-    try{
-        const {fullname, email, password, role} = req.body;
-        if(!fullname || !email || !password || !role){
+export const register = async (req, res) => {
+    try {
+        const { fullname, email, password, role } = req.body;
+        if (!fullname || !email || !password || !role) {
             return res.status(400).json({
-                message:"Please fill all fields",
-                success:false
+                message: "Please fill all fields",
+                success: false
             });
         }
 
-        const user = await User.findOne({email});
-        if(user){
+        const user = await User.findOne({ email });
+        if (user) {
             return res.status(400).json({
-                "message":"User already exists",
-                success:false
+                "message": "User already exists",
+                success: false
             })
         }
 
@@ -24,13 +26,87 @@ export const register = async(req, res) => {
         const newUser = await User.create({
             fullname,
             email,
-            password:hashedPassword,
+            password: hashedPassword,
             role
         })
 
+        res.status(201).json({
+            message: "User created successfully",
+            success: true,
+            user: newUser
+        })
+    }
+    catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+}
+
+
+export const login = async (res, req) => {
+    try {
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({
+                message: "Please fill all fields",
+                success: false
+            })
+        }
+
+        let user = await User.find({ email });
+        if (!user) {
+            return res.status(400).json({
+                message: "User not found",
+                success: false
+            })
+        }
+
+        const isPasswordMatch = await bcrypt.compare(password, user.password);
+        if (!isPasswordMatch) {
+            return res.status(400).json({
+                message: "Invalid credentials",
+                success: false
+            })
+        }
+        // check role is correct or not
+
+        if (role != user.role) {
+            return res.status(400).json({
+                message: "Account does ",
+                success: false
+            })
+        };
+
+        const tokenData = {
+            id: user._id,
+        }
+
+        const token = jwt.sign(tokenData, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+        user = {
+            _id: user._id,
+            fullname: user.fullname,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            role: user.role,
+            profile: user.profile,
+
+
+        }
+        return res.status(200).cookie("token", token, {
+            maxAge: 24 * 60 * 60 * 1000,
+            httpOnly: true,
+            sameSite: "none",
+            secure: true,
+        }).json({
+            message: `welcome back ${user.fullname}`,
+            user,
+            success: true,
+        })
+
+
 
     }
-    catch(error){
-        return res.status(500).json({message:error.message});
+    catch (error) {
+        return res.status(500).json({ message: error.message });
     }
 }
