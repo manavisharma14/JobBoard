@@ -2,12 +2,22 @@ import jwt from 'jsonwebtoken';
 
 const isAuthenticated = async (req, res, next) => {
     try {
-        const token = req.cookies.token;
+        let token;
+
+        // First try to get token from cookies
+        if (req.cookies && req.cookies.token) {
+            token = req.cookies.token;
+        }
+        // Else try to get token from Authorization header
+        else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+            token = req.headers.authorization.split(' ')[1]; // Get token after 'Bearer'
+        }
+
         if (!token) {
             return res.status(401).json({
                 message: "You are not authenticated",
                 success: false
-            })
+            });
         }
 
         const decode = await jwt.verify(token, process.env.JWT_SECRET);
@@ -18,7 +28,7 @@ const isAuthenticated = async (req, res, next) => {
             })
         }
 
-        req.id = decode.userId;
+        req.id = decode.id;
         next();
 
     } catch (error) {

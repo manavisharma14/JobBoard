@@ -43,9 +43,9 @@ export const register = async (req, res) => {
 }
 
 
-export const login = async (res, req) => {
+export const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password , role} = req.body;
         if (!email || !password) {
             return res.status(400).json({
                 message: "Please fill all fields",
@@ -53,7 +53,7 @@ export const login = async (res, req) => {
             })
         }
 
-        let user = await User.find({ email });
+        let user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({
                 message: "User not found",
@@ -72,7 +72,7 @@ export const login = async (res, req) => {
 
         if (role != user.role) {
             return res.status(400).json({
-                message: "Account does ",
+                message: "Account does not exist with this role ",
                 success: false
             })
         };
@@ -93,11 +93,11 @@ export const login = async (res, req) => {
 
 
         }
-        return res.status(200).cookie("token", token, {
+        res.status(200).cookie("token", token, {
             maxAge: 24 * 60 * 60 * 1000,
             httpOnly: true,
             sameSite: "none",
-            secure: true,
+            secure: process.env.NODE_ENV === "production"
         }).json({
             message: `welcome back ${user.fullname}`,
             user,
@@ -128,18 +128,16 @@ export const updateProfile = async(req, res) => {
     try{
         const {fullname, email, phoneNumber, bio, skills} = req.body;
         const file = req.file;
-        if(!fullname || !email || !phoneNumber || !password || !role){
-            return res.status(400).json({
-                message: "Please fill all fields",
-                success: false
-            });
-        };
+        
 
         // cloudinary will come here later
 
-        const skillsArray = skills.split(",");
+        let skillsArray;
+        if(skills){
+            skillsArray = skills.split(",");
+        }
         const userId = req.id; // middleware authentication
-        const user = await User.findById(userId);
+        let user = await User.findById(userId);
         if(!user){
             return res.status(404).json({
                 message: "User not found",
@@ -147,11 +145,13 @@ export const updateProfile = async(req, res) => {
             });
         };
 
-        user.fullname = fullname;
-        user.email = email;
-        user.phoneNumber = phoneNumber;
-        user.profile.bio = bio;
-        user.profile.skills = skillsArray;
+        if(fullname) user.fullname = fullname;
+        if(email) user.email = email;
+        if(phoneNumber) user.phoneNumber = phoneNumber;
+        if(bio) user.bio = bio;
+        if(skills) user.profile.skills = skillsArray;
+
+
 
         // resume comes here later
         await user.save();
