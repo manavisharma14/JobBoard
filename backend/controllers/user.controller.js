@@ -110,3 +110,67 @@ export const login = async (res, req) => {
         return res.status(500).json({ message: error.message });
     }
 }
+
+export const logout = async(req, res) => {
+    try {
+        return res.status(200).cookie("token", "", {maxAge: 0}).json({
+            message: "Logout success",
+            success: true,
+        })
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+}
+
+
+export const updateProfile = async(req, res) => {
+    try{
+        const {fullname, email, phoneNumber, bio, skills} = req.body;
+        const file = req.file;
+        if(!fullname || !email || !phoneNumber || !password || !role){
+            return res.status(400).json({
+                message: "Please fill all fields",
+                success: false
+            });
+        };
+
+        // cloudinary will come here later
+
+        const skillsArray = skills.split(",");
+        const userId = req.id; // middleware authentication
+        const user = await User.findById(userId);
+        if(!user){
+            return res.status(404).json({
+                message: "User not found",
+                success: false
+            });
+        };
+
+        user.fullname = fullname;
+        user.email = email;
+        user.phoneNumber = phoneNumber;
+        user.profile.bio = bio;
+        user.profile.skills = skillsArray;
+
+        // resume comes here later
+        await user.save();
+        
+
+        user = {
+            _id: user._id,
+            fullname: user.fullname,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            role: user.role,
+            profile: user.profile,
+        }
+
+        return res.status(200).json({
+            message: "Profile updated successfully",
+            user,
+            success: true,
+        })
+    } catch(error){
+        return res.status(500).json({message: error.message});
+    }
+}
