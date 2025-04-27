@@ -1,11 +1,11 @@
 // controller is business logic
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import User from '../models/user.model.js';
+import {User} from '../models/user.model.js'
 
 export const register = async (req, res) => {
     try {
-        const { fullname, email, password, role } = req.body;
+        const { fullname, email, password, phoneNumber, role } = req.body;
         if (!fullname || !email || !password || !role) {
             return res.status(400).json({
                 message: "Please fill all fields",
@@ -26,6 +26,7 @@ export const register = async (req, res) => {
         const newUser = await User.create({
             fullname,
             email,
+            phoneNumber,
             password: hashedPassword,
             role
         })
